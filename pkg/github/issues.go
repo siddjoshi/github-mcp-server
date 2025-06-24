@@ -931,3 +931,170 @@ func parseISOTimestamp(timestamp string) (time.Time, error) {
 	// Return error with supported formats
 	return time.Time{}, fmt.Errorf("invalid ISO 8601 timestamp: %s (supported formats: YYYY-MM-DDThh:mm:ssZ or YYYY-MM-DD)", timestamp)
 }
+
+// ListMilestones creates a tool to list milestones in a repository
+func ListMilestones(getClient GetClientFn, t translations.TranslationHelperFunc) (tool mcp.Tool, handler server.ToolHandlerFunc) {
+	return mcp.NewTool("list_milestones",
+			mcp.WithDescription(t("TOOL_LIST_MILESTONES_DESCRIPTION", "List milestones in a GitHub repository.")),
+			mcp.WithToolAnnotation(mcp.ToolAnnotation{
+				Title:        t("TOOL_LIST_MILESTONES_USER_TITLE", "List milestones"),
+				ReadOnlyHint: ToBoolPtr(true),
+			}),
+			mcp.WithString("owner",
+				mcp.Required(),
+				mcp.Description("Repository owner"),
+			),
+			mcp.WithString("repo",
+				mcp.Required(),
+				mcp.Description("Repository name"),
+			),
+			mcp.WithString("state",
+				mcp.Description("Filter by state: open, closed, all (default: open)"),
+			),
+		),
+		func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			owner, err := RequiredParam[string](request, "owner")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+			repo, err := RequiredParam[string](request, "repo")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+
+			state, err := OptionalParam[string](request, "state")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+			if state == "" {
+				state = "open"
+			}
+
+			client, err := getClient(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub client: %w", err)
+			}
+
+			opt := &github.MilestoneListOptions{
+				State: state,
+			}
+
+			milestones, _, err := client.Issues.ListMilestones(ctx, owner, repo, opt)
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("Failed to list milestones: %v", err)), nil
+			}
+
+			return mcp.NewToolResultText(formatMilestonesResponse(milestones)), nil
+		}
+}
+
+// CreateMilestone creates a tool to create a new milestone
+func CreateMilestone(getClient GetClientFn, t translations.TranslationHelperFunc) (tool mcp.Tool, handler server.ToolHandlerFunc) {
+	return mcp.NewTool("create_milestone",
+			mcp.WithDescription(t("TOOL_CREATE_MILESTONE_DESCRIPTION", "Create a new milestone in a GitHub repository.")),
+			mcp.WithToolAnnotation(mcp.ToolAnnotation{
+				Title:        t("TOOL_CREATE_MILESTONE_USER_TITLE", "Create milestone"),
+				ReadOnlyHint: ToBoolPtr(false),
+			}),
+			mcp.WithString("owner",
+				mcp.Required(),
+				mcp.Description("Repository owner"),
+			),
+			mcp.WithString("repo",
+				mcp.Required(),
+				mcp.Description("Repository name"),
+			),
+			mcp.WithString("title",
+				mcp.Required(),
+				mcp.Description("Milestone title"),
+			),
+			mcp.WithString("description",
+				mcp.Description("Milestone description"),
+			),
+			mcp.WithString("due_on",
+				mcp.Description("Due date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)"),
+			),
+		),
+		func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			owner, err := RequiredParam[string](request, "owner")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+			repo, err := RequiredParam[string](request, "repo")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+			title, err := RequiredParam[string](request, "title")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+
+			description, err := OptionalParam[string](request, "description")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+
+			dueOn, err := OptionalParam[string](request, "due_on")
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+
+			client, err := getClient(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub client: %w", err)
+			}
+
+			milestone := &github.Milestone{
+				Title:       &title,
+				Description: &description,
+			}
+
+			if dueOn != "" {
+				due, err := parseISOTimestamp(dueOn)
+				if err != nil {
+					return mcp.NewToolResultError(fmt.Sprintf("Invalid due date format: %v", err)), nil
+				}
+				milestone.DueOn = &github.Timestamp{Time: due}
+			}
+
+			created, _, err := client.Issues.CreateMilestone(ctx, owner, repo, milestone)
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("Failed to create milestone: %v", err)), nil
+			}
+
+			return mcp.NewToolResultText(formatMilestoneResponse(created)), nil
+		}
+}
+
+// Helper function to format milestones response
+func formatMilestonesResponse(milestones []*github.Milestone) string {
+	if len(milestones) == 0 {
+		return "No milestones found."
+	}
+
+	result := fmt.Sprintf("Found %d milestones:\n\n", len(milestones))
+	for _, milestone := range milestones {
+		result += fmt.Sprintf("- **%s** (#%d)\n", milestone.GetTitle(), milestone.GetNumber())
+		result += fmt.Sprintf("  - State: %s\n", milestone.GetState())
+		result += fmt.Sprintf("  - Description: %s\n", milestone.GetDescription())
+		result += fmt.Sprintf("  - Open Issues: %d\n", milestone.GetOpenIssues())
+		result += fmt.Sprintf("  - Closed Issues: %d\n", milestone.GetClosedIssues())
+		if milestone.DueOn != nil {
+			result += fmt.Sprintf("  - Due: %s\n", milestone.DueOn.Format("2006-01-02 15:04:05"))
+		}
+		result += fmt.Sprintf("  - URL: %s\n\n", milestone.GetHTMLURL())
+	}
+	return result
+}
+
+// Helper function to format single milestone response
+func formatMilestoneResponse(milestone *github.Milestone) string {
+	result := fmt.Sprintf("Created milestone: **%s** (#%d)\n", milestone.GetTitle(), milestone.GetNumber())
+	result += fmt.Sprintf("- State: %s\n", milestone.GetState())
+	result += fmt.Sprintf("- Description: %s\n", milestone.GetDescription())
+	if milestone.DueOn != nil {
+		result += fmt.Sprintf("- Due: %s\n", milestone.DueOn.Format("2006-01-02 15:04:05"))
+	}
+	result += fmt.Sprintf("- URL: %s\n", milestone.GetHTMLURL())
+	return result
+}

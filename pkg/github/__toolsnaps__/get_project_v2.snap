@@ -1,0 +1,20 @@
+{
+  "annotations": {
+    "title": "Get Projects v2 details",
+    "readOnlyHint": true
+  },
+  "description": "Get details of a specific Projects v2.",
+  "inputSchema": {
+    "properties": {
+      "project_id": {
+        "description": "Projects v2 ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "project_id"
+    ],
+    "type": "object"
+  },
+  "name": "get_project_v2"
+}

@@ -1550,3 +1550,161 @@ func TestAssignCopilotToIssue(t *testing.T) {
 		})
 	}
 }
+
+func Test_ListMilestones(t *testing.T) {
+	// Verify tool definition once
+	mockClient := github.NewClient(nil)
+	tool, _ := ListMilestones(stubGetClientFn(mockClient), translations.NullTranslationHelper)
+	require.NoError(t, toolsnaps.Test(tool.Name, tool))
+
+	assert.Equal(t, "list_milestones", tool.Name)
+	assert.NotEmpty(t, tool.Description)
+	assert.Contains(t, tool.InputSchema.Properties, "owner")
+	assert.Contains(t, tool.InputSchema.Properties, "repo")
+	assert.Contains(t, tool.InputSchema.Properties, "state")
+	assert.ElementsMatch(t, tool.InputSchema.Required, []string{"owner", "repo"})
+
+	// Setup mock milestones for success case
+	mockMilestones := []*github.Milestone{
+		{
+			Number:      github.Ptr(1),
+			Title:       github.Ptr("v1.0"),
+			Description: github.Ptr("First release"),
+			State:       github.Ptr("open"),
+			OpenIssues:  github.Ptr(5),
+			ClosedIssues: github.Ptr(10),
+			HTMLURL:     github.Ptr("https://github.com/owner/repo/milestone/1"),
+		},
+	}
+
+	tests := []struct {
+		name             string
+		mockedClient     *http.Client
+		requestArgs      map[string]interface{}
+		expectError      bool
+		expectedMilestones []*github.Milestone
+		expectedErrMsg   string
+	}{
+		{
+			name: "successful milestone listing",
+			mockedClient: mock.NewMockedHTTPClient(
+				mock.WithRequestMatch(
+					mock.GetReposMilestonesByOwnerByRepo,
+					mockMilestones,
+				),
+			),
+			requestArgs: map[string]interface{}{
+				"owner": "owner",
+				"repo":  "repo",
+			},
+			expectError:        false,
+			expectedMilestones: mockMilestones,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var client *github.Client
+			if tt.mockedClient != nil {
+				client = github.NewClient(tt.mockedClient)
+			} else {
+				client = github.NewClient(nil)
+			}
+
+			_, handler := ListMilestones(stubGetClientFn(client), translations.NullTranslationHelper)
+
+			result, err := handler(context.Background(), createMCPRequest(tt.requestArgs))
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.expectedErrMsg != "" {
+					assert.Contains(t, err.Error(), tt.expectedErrMsg)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, result)
+				textContent := getTextResult(t, result)
+				assert.Contains(t, textContent.Text, "v1.0")
+			}
+		})
+	}
+}
+
+func Test_CreateMilestone(t *testing.T) {
+	// Verify tool definition once
+	mockClient := github.NewClient(nil)
+	tool, _ := CreateMilestone(stubGetClientFn(mockClient), translations.NullTranslationHelper)
+	require.NoError(t, toolsnaps.Test(tool.Name, tool))
+
+	assert.Equal(t, "create_milestone", tool.Name)
+	assert.NotEmpty(t, tool.Description)
+	assert.Contains(t, tool.InputSchema.Properties, "owner")
+	assert.Contains(t, tool.InputSchema.Properties, "repo")
+	assert.Contains(t, tool.InputSchema.Properties, "title")
+	assert.Contains(t, tool.InputSchema.Properties, "description")
+	assert.Contains(t, tool.InputSchema.Properties, "due_on")
+	assert.ElementsMatch(t, tool.InputSchema.Required, []string{"owner", "repo", "title"})
+
+	// Setup mock milestone for success case
+	mockMilestone := &github.Milestone{
+		Number:      github.Ptr(1),
+		Title:       github.Ptr("v1.0"),
+		Description: github.Ptr("First release"),
+		State:       github.Ptr("open"),
+		HTMLURL:     github.Ptr("https://github.com/owner/repo/milestone/1"),
+	}
+
+	tests := []struct {
+		name             string
+		mockedClient     *http.Client
+		requestArgs      map[string]interface{}
+		expectError      bool
+		expectedMilestone *github.Milestone
+		expectedErrMsg   string
+	}{
+		{
+			name: "successful milestone creation",
+			mockedClient: mock.NewMockedHTTPClient(
+				mock.WithRequestMatch(
+					mock.PostReposMilestonesByOwnerByRepo,
+					mockMilestone,
+				),
+			),
+			requestArgs: map[string]interface{}{
+				"owner":       "owner",
+				"repo":        "repo",
+				"title":       "v1.0",
+				"description": "First release",
+			},
+			expectError:       false,
+			expectedMilestone: mockMilestone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var client *github.Client
+			if tt.mockedClient != nil {
+				client = github.NewClient(tt.mockedClient)
+			} else {
+				client = github.NewClient(nil)
+			}
+
+			_, handler := CreateMilestone(stubGetClientFn(client), translations.NullTranslationHelper)
+
+			result, err := handler(context.Background(), createMCPRequest(tt.requestArgs))
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.expectedErrMsg != "" {
+					assert.Contains(t, err.Error(), tt.expectedErrMsg)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, result)
+				textContent := getTextResult(t, result)
+				assert.Contains(t, textContent.Text, "v1.0")
+			}
+		})
+	}
+}

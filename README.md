@@ -268,8 +268,9 @@ The following sets of tools are available (all are on by default):
 | `actions`               | GitHub Actions workflows and CI/CD operations                |
 | `context`               | **Strongly recommended**: Tools that provide context about the current user and GitHub context you are operating in |
 | `code_security`         | Code scanning alerts and security features                    |
-| `issues`                | Issue-related tools (create, read, update, comment)           |
+| `issues`                | Issue-related tools (create, read, update, comment, milestones) |
 | `notifications`         | GitHub Notifications related tools                            |
+| `projects`              | GitHub Projects v2 related tools (list, manage, add issues)   |
 | `pull_requests`         | Pull request operations (create, merge, review)               |
 | `repos`                 | Repository-related tools (file operations, branches, commits) |
 | `secret_protection`     | Secret protection related tools, such as GitHub Secret Scanning |
@@ -498,6 +499,42 @@ export GITHUB_MCP_TOOL_ADD_ISSUE_COMMENT_DESCRIPTION="an alternative description
   - `repo`: Repository name (string, required)
   - `issueNumber`: Issue number (number, required)
   - _Note_: This tool can help with creating a Pull Request with source code changes to resolve the issue. More information can be found at [GitHub Copilot documentation](https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent-to-work-on-tasks/about-assigning-tasks-to-copilot)
+
+- **list_milestones** - List milestones in a GitHub repository
+
+  - `owner`: Repository owner (string, required)
+  - `repo`: Repository name (string, required)
+  - `state`: Filter by state ('open', 'closed', 'all') (string, optional, default: 'open')
+
+- **create_milestone** - Create a new milestone in a GitHub repository
+
+  - `owner`: Repository owner (string, required)
+  - `repo`: Repository name (string, required)
+  - `title`: Milestone title (string, required)
+  - `description`: Milestone description (string, optional)
+  - `due_on`: Due date in ISO 8601 format (string, optional)
+
+### Projects
+
+- **list_projects_v2** - List Projects v2 for an organization or user
+
+  - `owner`: Organization or user login (string, required)
+  - `owner_type`: Owner type ('organization' or 'user') (string, required)
+
+- **get_project_v2** - Get details of a specific Projects v2
+
+  - `project_id`: Projects v2 ID (string, required)
+
+- **get_issue_node_id** - Get the node ID of an issue for use with Projects v2
+
+  - `owner`: Repository owner (string, required)
+  - `repo`: Repository name (string, required)
+  - `issue_number`: Issue number (number, required)
+
+- **add_issue_to_project_v2** - Add an issue to a Projects v2
+
+  - `project_id`: Projects v2 ID (string, required)
+  - `issue_id`: Issue node ID (string, required)
 
 
 ### Pull Requests
