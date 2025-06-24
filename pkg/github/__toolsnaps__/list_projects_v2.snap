@@ -1,0 +1,25 @@
+{
+  "annotations": {
+    "title": "List Projects v2",
+    "readOnlyHint": true
+  },
+  "description": "List Projects v2 for an organization or user.",
+  "inputSchema": {
+    "properties": {
+      "owner": {
+        "description": "Organization or user login",
+        "type": "string"
+      },
+      "owner_type": {
+        "description": "Owner type: organization or user",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "owner_type"
+    ],
+    "type": "object"
+  },
+  "name": "list_projects_v2"
+}

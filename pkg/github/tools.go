@@ -53,12 +53,14 @@ func DefaultToolsetGroup(readOnly bool, getClient GetClientFn, getGQLClient GetG
 			toolsets.NewServerTool(SearchIssues(getClient, t)),
 			toolsets.NewServerTool(ListIssues(getClient, t)),
 			toolsets.NewServerTool(GetIssueComments(getClient, t)),
+			toolsets.NewServerTool(ListMilestones(getClient, t)),
 		).
 		AddWriteTools(
 			toolsets.NewServerTool(CreateIssue(getClient, t)),
 			toolsets.NewServerTool(AddIssueComment(getClient, t)),
 			toolsets.NewServerTool(UpdateIssue(getClient, t)),
 			toolsets.NewServerTool(AssignCopilotToIssue(getGQLClient, t)),
+			toolsets.NewServerTool(CreateMilestone(getClient, t)),
 		)
 	users := toolsets.NewToolset("users", "GitHub User related tools").
 		AddReadTools(
@@ -134,6 +136,16 @@ func DefaultToolsetGroup(readOnly bool, getClient GetClientFn, getGQLClient GetG
 	// Keep experiments alive so the system doesn't error out when it's always enabled
 	experiments := toolsets.NewToolset("experiments", "Experimental features that are not considered stable yet")
 
+	projects := toolsets.NewToolset("projects", "GitHub Projects related tools").
+		AddReadTools(
+			toolsets.NewServerTool(ListProjectV2(getGQLClient, t)),
+			toolsets.NewServerTool(GetProjectV2(getGQLClient, t)),
+			toolsets.NewServerTool(GetIssueNodeId(getGQLClient, t)),
+		).
+		AddWriteTools(
+			toolsets.NewServerTool(AddIssueToProjectV2(getGQLClient, t)),
+		)
+
 	contextTools := toolsets.NewToolset("context", "Tools that provide context about the current user and GitHub context you are operating in").
 		AddReadTools(
 			toolsets.NewServerTool(GetMe(getClient, t)),
@@ -149,6 +161,7 @@ func DefaultToolsetGroup(readOnly bool, getClient GetClientFn, getGQLClient GetG
 	tsg.AddToolset(codeSecurity)
 	tsg.AddToolset(secretProtection)
 	tsg.AddToolset(notifications)
+	tsg.AddToolset(projects)
 	tsg.AddToolset(experiments)
 
 	return tsg

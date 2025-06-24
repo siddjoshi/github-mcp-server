@@ -1,0 +1,25 @@
+{
+  "annotations": {
+    "title": "Add issue to Projects v2",
+    "readOnlyHint": false
+  },
+  "description": "Add an issue to a Projects v2.",
+  "inputSchema": {
+    "properties": {
+      "issue_id": {
+        "description": "Issue ID",
+        "type": "string"
+      },
+      "project_id": {
+        "description": "Projects v2 ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "project_id",
+      "issue_id"
+    ],
+    "type": "object"
+  },
+  "name": "add_issue_to_project_v2"
+}

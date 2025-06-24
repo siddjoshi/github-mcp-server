@@ -1,0 +1,38 @@
+{
+  "annotations": {
+    "title": "Create milestone",
+    "readOnlyHint": false
+  },
+  "description": "Create a new milestone in a GitHub repository.",
+  "inputSchema": {
+    "properties": {
+      "description": {
+        "description": "Milestone description",
+        "type": "string"
+      },
+      "due_on": {
+        "description": "Due date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)",
+        "type": "string"
+      },
+      "owner": {
+        "description": "Repository owner",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Repository name",
+        "type": "string"
+      },
+      "title": {
+        "description": "Milestone title",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "repo",
+      "title"
+    ],
+    "type": "object"
+  },
+  "name": "create_milestone"
+}

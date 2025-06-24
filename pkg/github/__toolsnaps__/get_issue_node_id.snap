@@ -1,0 +1,30 @@
+{
+  "annotations": {
+    "title": "Get issue node ID",
+    "readOnlyHint": true
+  },
+  "description": "Get the node ID of an issue for use with Projects v2.",
+  "inputSchema": {
+    "properties": {
+      "issue_number": {
+        "description": "Issue number",
+        "type": "number"
+      },
+      "owner": {
+        "description": "Repository owner",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Repository name",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "repo",
+      "issue_number"
+    ],
+    "type": "object"
+  },
+  "name": "get_issue_node_id"
+}
